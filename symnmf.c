@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include "symnmf.h"
+
+#define MAX_ITER 300
+#define EPSILON 1e-4
+#define BETA 0.5
 
 void err_msg_and_terminate()
 {
@@ -37,7 +42,7 @@ double **read_input(const char *file_name, int *n, int *d)
             (*d)++;
         prev_c = c;
     }
-
+    /* **************************************NOT SURE ABOUT THIS */
     if (prev_c != '\n' && prev_c != EOF)
         (*n)++;
 
@@ -85,16 +90,16 @@ void free_matrix(double **mat, int n)
     free(mat);
 }
 
-double **allocate_matrix(int n)
+double **allocate_matrix(int rows, int cols)
 {
     int i;
-    double **mat = (double **)malloc(n * sizeof(double *));
+    double **mat = (double **)malloc(rows * sizeof(double *));
     if (mat == NULL)
         err_msg_and_terminate();
 
-    for (i = 0; i < n; i++)
+    for (i = 0; i < rows; i++)
     {
-        mat[i] = (double *)calloc(n, sizeof(double));
+        mat[i] = (double *)calloc(cols, sizeof(double));
         if (mat[i] == NULL)
             err_msg_and_terminate();
     }
@@ -104,7 +109,7 @@ double **allocate_matrix(int n)
 double **create_sym_matrix(double **data_points, int n, int d)
 {
     int i, j;
-    double **sym_mat = allocate_matrix(n);
+    double **sym_mat = allocate_matrix(n, n);
 
     for (i = 0; i < n; i++)
     {
@@ -138,7 +143,7 @@ double *create_diag_matrix(double **sym_mat, int n)
 double **create_norm_matrix(double **sym_mat, double *diag_arr, int n)
 {
     int i, j;
-    double **norm_mat = allocate_matrix(n);
+    double **norm_mat = allocate_matrix(n, n);
     for (i = 0; i < n; i++)
     {
         for (j = 0; j < n; j++)
@@ -150,6 +155,121 @@ double **create_norm_matrix(double **sym_mat, double *diag_arr, int n)
         }
     }
     return norm_mat;
+}
+
+void mult_matrices(double **mat1, double **mat2, double **result_mat, int rows1, int common_dim, int cols2)
+{
+    /*  number of cols in mat1 = number of rows in mat2 = common_dim */
+    int i, j, k;
+
+    for (i = 0; i < rows1; i++)
+    {
+        for (j = 0; j < cols2; j++)
+        {
+            result_mat[i][j] = 0.0;
+
+            for (k = 0; k < common_dim; k++)
+            {
+                result_mat[i][j] += mat1[i][k] * mat2[k][j];
+            }
+        }
+    }
+}
+
+void transpose_mat(double **mat, double **t_mat, int rows, int cols)
+{
+    int i, j;
+    for (i = 0; i < rows; i++)
+    {
+        for (j = 0; j < cols; j++)
+        {
+            t_mat[j][i] = mat[i][j];
+        }
+    }
+}
+
+double squared_frobenius_norm(double **mat1, double **mat2, int rows, int cols)
+{
+    int i, j;
+    double sum = 0.0;
+    double diff;
+
+    for (i = 0; i < rows; i++)
+    {
+        for (j = 0; j < cols; j++)
+        {
+            diff = mat1[i][j] - mat2[i][j];
+            sum += (diff * diff);
+        }
+    }
+
+    return sum;
+}
+
+/* Computes the next iteration of H and stores it in next_H */
+void compute_next_H(double **W, double **H, double **WH, double **Ht,
+                    double **HtH, double **HHtH, double **next_H, int n, int k)
+{
+    int i, j;
+    /* transposes H and stores it in Ht */
+    transpose_mat(H, Ht, n, k);
+
+    /* multiply matrices */
+    mult_matrices(W, H, WH, n, n, k);
+    mult_matrices(Ht, H, HtH, k, n, k);
+    mult_matrices(H, HtH, HHtH, n, k, k);
+
+    /* calculate next_H */
+    for (i = 0; i < n; i++)
+    {
+        for (j = 0; j < k; j++)
+        {
+            next_H[i][j] = H[i][j] * (1.0 - BETA + BETA * (WH[i][j] / HHtH[i][j]));
+        }
+    }
+}
+
+void update_H(double **H, double **next_H, int n, int k)
+{
+    int i, j;
+
+    for (i = 0; i < n; i++)
+    {
+        for (j = 0; j < k; j++)
+        {
+            H[i][j] = next_H[i][j];
+        }
+    }
+}
+
+double **optimize_H(double **W, double **H, int n, int k)
+{
+    int iter_num = 0;
+    double dist;
+
+    /* Allocate working memory once to prevent performance overhead */
+    double **WH = allocate_matrix(n, k);
+    double **Ht = allocate_matrix(k, n);
+    double **HtH = allocate_matrix(k, k);
+    double **HHtH = allocate_matrix(n, k);
+    double **next_H = allocate_matrix(n, k);
+
+    do
+    {
+        compute_next_H(W, H, WH, Ht, HtH, HHtH, next_H, n, k);
+        dist = squared_frobenius_norm(next_H, H, n, k);
+        update_H(H, next_H, n, k);
+        iter_num++;
+    } while (iter_num < MAX_ITER && dist >= EPSILON);
+
+    /* Free working memory */
+    free_matrix(WH, n);
+    free_matrix(Ht, k);
+    free_matrix(HtH, k);
+    free_matrix(HHtH, n);
+    free_matrix(next_H, n);
+
+    return H;
 }
 
 void print_matrix(double **mat, int n)
