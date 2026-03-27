@@ -13,14 +13,35 @@ static double **convert_py_to_c_mat(PyObject *py_mat, int rows, int cols)
     int i, j;
     PyObject *row, *item;
 
+    if (py_mat == NULL || !PyList_Check(py_mat) || rows <= 0 || cols <= 0)
+    {
+        err_msg_and_terminate();
+    }
     double **c_mat = allocate_matrix(rows, cols);
+    if (c_mat == NULL)
+    {
+        err_msg_and_terminate();
+    }
 
     for (i = 0; i < rows; i++)
     {
         row = PyList_GetItem(py_mat, i); /* get python row */
+        if (row == NULL || !PyList_Check(row))
+        {
+            err_msg_and_terminate();
+        }
+        if (PyList_Size(row) != cols)
+        {
+            err_msg_and_terminate();
+        }
+
         for (j = 0; j < cols; j++)
         {
             item = PyList_GetItem(row, j); /* get python item in (i,j) */
+            if (item == NULL || !PyFloat_Check(item))
+            {
+                err_msg_and_terminate();
+            }
             c_mat[i][j] = PyFloat_AsDouble(item);
         }
     }
@@ -58,7 +79,7 @@ static PyObject *sym_wrapper(PyObject *self, PyObject *args)
     /* מקבלים מפייתון את המטריצה, מספר השורות ומספר העמודות */
     if (!PyArg_ParseTuple(args, "Oii", &py_datapoints, &n, &d))
     {
-        return NULL;
+        err_msg_and_terminate();
     }
 
     /* 1. המרה ל-C */
@@ -88,7 +109,7 @@ static PyObject *symnmf_wrapper(PyObject *self, PyObject *args)
     /* מקבלים מפייתון את W, את H ההתחלתי, n ו-k */
     if (!PyArg_ParseTuple(args, "OOii", &py_W, &py_H, &n, &k))
     {
-        return NULL;
+        err_msg_and_terminate();
     }
 
     W = convert_py_to_c_mat(py_W, n, n);
@@ -116,9 +137,8 @@ static PyObject *ddg_wrapper(PyObject *self, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "Oii", &py_datapoints, &n, &d))
     {
-        return NULL;
+        err_msg_and_terminate();
     }
-
     data_points = convert_py_to_c_mat(py_datapoints, n, d);
     sym_mat = create_sym_matrix(data_points, n, d);
     diag_arr = create_diag_matrix(sym_mat, n);
@@ -141,11 +161,9 @@ static PyObject *ddg_wrapper(PyObject *self, PyObject *args)
         }
         PyList_SetItem(py_result, i, py_row);
     }
-
     free_matrix(data_points, n);
     free_matrix(sym_mat, n);
     free(diag_arr);
-
     return py_result;
 }
 
@@ -160,7 +178,7 @@ static PyObject *norm_wrapper(PyObject *self, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "Oii", &py_datapoints, &n, &d))
     {
-        return NULL;
+        err_msg_and_terminate();
     }
 
     data_points = convert_py_to_c_mat(py_datapoints, n, d);

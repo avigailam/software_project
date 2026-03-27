@@ -1,6 +1,9 @@
 #ifndef SYMNMF_H
 #define SYMNMF_H
 
+/* Error handling */
+void err_msg_and_terminate();
+
 /* Memory management functions exposed to the Python C API */
 double **allocate_matrix(int rows, int cols);
 void free_matrix(double **mat, int n);

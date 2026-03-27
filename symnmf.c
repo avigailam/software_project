@@ -23,6 +23,8 @@ double **read_input(const char *file_name, int *n, int *d)
     FILE *f;
     double **data_points;
     int i, j, c;
+    if (file_name == NULL) 
+        err_msg_and_terminate();
     int prev_c = '\n';
 
     *n = 0;
@@ -93,7 +95,11 @@ void free_matrix(double **mat, int n)
 double **allocate_matrix(int rows, int cols)
 {
     int i;
+    if (rows <= 0 || cols <= 0) 
+        err_msg_and_terminate();
+
     double **mat = (double **)malloc(rows * sizeof(double *));
+
     if (mat == NULL)
         err_msg_and_terminate();
 
@@ -109,6 +115,9 @@ double **allocate_matrix(int rows, int cols)
 double **create_sym_matrix(double **data_points, int n, int d)
 {
     int i, j;
+    if (data_points == NULL || n <= 0 || d <= 0) 
+        err_msg_and_terminate();
+
     double **sym_mat = allocate_matrix(n, n);
 
     for (i = 0; i < n; i++)
@@ -127,9 +136,13 @@ double **create_sym_matrix(double **data_points, int n, int d)
 double *create_diag_matrix(double **sym_mat, int n)
 {
     int i, j;
-    double *diag_arr = (double *)calloc(n, sizeof(double));
-    if (diag_arr == NULL)
+    if (sym_mat == NULL || n <= 0) 
         err_msg_and_terminate();
+    
+    double *diag_arr = (double *)calloc(n, sizeof(double));
+    if (diag_arr == NULL) 
+        err_msg_and_terminate();
+    
     for (i = 0; i < n; i++)
     {
         for (j = 0; j < n; j++)
@@ -143,7 +156,13 @@ double *create_diag_matrix(double **sym_mat, int n)
 double **create_norm_matrix(double **sym_mat, double *diag_arr, int n)
 {
     int i, j;
+    if (sym_mat == NULL || diag_arr == NULL || n <= 0) 
+        err_msg_and_terminate();
+    
     double **norm_mat = allocate_matrix(n, n);
+    if (norm_mat == NULL) {
+        err_msg_and_terminate();
+    }
     for (i = 0; i < n; i++)
     {
         for (j = 0; j < n; j++)
@@ -246,6 +265,9 @@ double **optimize_H(double **W, double **H, int n, int k)
 {
     int iter_num = 0;
     double dist;
+    if (W == NULL || H == NULL || n <= 0 || k <= 0) {
+        err_msg_and_terminate();
+    }
 
     /* Allocate working memory once to prevent performance overhead */
     double **WH = allocate_matrix(n, k);
@@ -332,7 +354,6 @@ int main(int argc, char **argv)
 
     if (is_ddg || is_norm)
         diag_arr = create_diag_matrix(sym_mat, n);
-
     if (is_ddg)
         print_diagonal_matrix(diag_arr, n);
 
@@ -346,6 +367,5 @@ int main(int argc, char **argv)
         free(diag_arr);
     free_matrix(sym_mat, n);
     free_matrix(data_points, n);
-
     return 0;
 }
