@@ -24,25 +24,17 @@ def print_matrix(matrix):
 
 
 def read_input(file_name):
-    """
-    Reads input from a text file and returns n, d, and the data matrix.
-    
-    Args:
-        file_name: Path to the input text file
-        
-    Returns:
-        Tuple of (n, d, data_points) where:
-        - n: number of data points (rows)
-        - d: number of dimensions (columns)
-        - data_points: list of lists representing the data matrix
-    """
+    """ Reads input from a text file and returns n, d, and the data matrix.
+    Args:      file_name: Path to the input text file
+    Returns:   Tuple of (n, d, data_points) where:
+                  - n: number of data points (rows)
+                  - d: number of dimensions (columns)
+                  - data_points: list of lists representing the data matrix """
     data_points = []
-    
     try:
         with open(file_name, 'r') as f:
             lines = f.readlines()
-            
-            if not lines:
+            if not lines: 
                 error_handler()
             
             for line in lines:
@@ -55,7 +47,6 @@ def read_input(file_name):
                         data_points.append(row)
                     except ValueError:
                         error_handler()
-        
         if not data_points:
             error_handler()
         
@@ -68,12 +59,43 @@ def read_input(file_name):
                 error_handler()
         
         return n, d, data_points
-    
     except FileNotFoundError:
         error_handler()
     except IOError:
         error_handler()
 
+
+def goalexecutor(goal, data_points, n, d, k):
+    """
+    Executes the specified goal using the symnmf module.
+    
+    Args:
+        goal: A string indicating the goal to execute ('sym', 'ddg', 'norm', 'symnmf')
+        data_points: A list of lists representing the data matrix
+        n: Number of data points (rows)
+        d: Number of dimensions (columns)
+        k: Number of clusters for symnmf
+    """
+    if goal == 'sym':
+        result = symnmf.sym(data_points, n, d)
+        print_matrix(result)
+    
+    elif goal == 'ddg':
+        result = symnmf.ddg(data_points, n, d)
+        print_matrix(result)
+    
+    elif goal == 'norm':
+        result = symnmf.norm(data_points, n, d)
+        print_matrix(result)
+    
+    elif goal == 'symnmf':
+        W = symnmf.norm(data_points, n, d)
+        
+        np.random.seed(1234)
+        H = np.random.uniform(0, 1, (n, k)).tolist()
+        
+        result = symnmf.symnmf(W, H, n, k)
+        print_matrix(result)
 
 
 def main():
@@ -105,37 +127,10 @@ def main():
         error_handler()
     
     try:
-        if goal == 'sym':
-            # Calculate and output similarity matrix
-            result = symnmf.sym(data_points, n, d)
-            print_matrix(result)
+        goalexecutor(goal, data_points, n, d, k)
         
-        elif goal == 'ddg':
-            # Calculate and output diagonal degree matrix
-            result = symnmf.ddg(data_points, n, d)
-            print_matrix(result)
-        
-        elif goal == 'norm':
-            # Calculate and output normalized similarity matrix
-            result = symnmf.norm(data_points, n, d)
-            print_matrix(result)
-        
-        elif goal == 'symnmf':
-            # Calculate W (normalized similarity matrix)
-            W = symnmf.norm(data_points, n, d)
-            
-            # Initialize H using np.random.uniform()
-            np.random.seed(1234)
-            H = np.random.uniform(0, 1, (n, k)).tolist()
-            
-            # Optimize H using the C extension
-            result = symnmf.symnmf(W, H, n, k)
-            print_matrix(result)
-    
     except Exception as e:
         error_handler()
-
-
 
 if __name__ == '__main__':
     main()
