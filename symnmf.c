@@ -14,43 +14,34 @@ void err_msg_and_terminate()
     exit(1);
 }
 
-/*
- * Reads input from a text file using a Two-Pass approach.
- * Modifies n (rows) and d (dimensions) in place, returns the 2D array.
- */
+
+ /* Reads input from a text file using a Two-Pass approach.
+ * Modifies n (rows) and d (dimensions) in place, returns the 2D array.*/
 double **read_input(const char *file_name, int *n, int *d)
 {
     FILE *f;
     double **data_points;
-    int i, j, prev_c = '\n';
-    char c;
-    if (file_name == NULL)
-        err_msg_and_terminate();
+    int i, j, prev_c = '\n', c;
 
-    *n = 0;
-    *d = 1;
-
+    if (file_name == NULL) err_msg_and_terminate();
+    *n = 0; *d = 1;
     f = fopen(file_name, "r");
-    if (f == NULL)
-        err_msg_and_terminate();
+    if (f == NULL) err_msg_and_terminate();
 
-    /* Counting rows (n) and dimensions (d) */
     while ((c = fgetc(f)) != EOF)
     {
-        if (c == '\n')
-            if (prev_c != '\n')
-                (*n)++;
+        if (c == '\n' && prev_c != '\n')
+            (*n)++;
         if (c == ',' && *n == 0)
             (*d)++;
         prev_c = c;
     }
-    /* **************************************NOT SURE ABOUT THIS */
     if (prev_c != '\n' && prev_c != EOF)
         (*n)++;
 
     data_points = (double **)malloc(*n * sizeof(double *));
-    if (data_points == NULL)
-        err_msg_and_terminate();
+    if (data_points == NULL) 
+         err_msg_and_terminate();
     rewind(f);
 
     for (i = 0; i < *n; i++)
@@ -59,11 +50,8 @@ double **read_input(const char *file_name, int *n, int *d)
         if (data_points[i] == NULL)
             err_msg_and_terminate();
         for (j = 0; j < *d; j++)
-        {
             fscanf(f, "%lf%c", &data_points[i][j], &c);
-        }
     }
-
     fclose(f);
     return data_points;
 }
@@ -335,6 +323,7 @@ void print_diagonal_matrix(double *diag_arr, int n)
     }
 }
 
+
 int main(int argc, char **argv)
 {
     char *goal;
@@ -358,12 +347,10 @@ int main(int argc, char **argv)
 
     if (is_sym)
         print_matrix(sym_mat, n);
-
     if (is_ddg || is_norm)
         diag_arr = create_diag_matrix(sym_mat, n);
     if (is_ddg)
         print_diagonal_matrix(diag_arr, n);
-
     if (is_norm)
     {
         norm_mat = create_norm_matrix(sym_mat, diag_arr, n);

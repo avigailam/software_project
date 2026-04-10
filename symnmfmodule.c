@@ -197,7 +197,6 @@ static PyObject *norm_wrapper(PyObject *self, PyObject *args)
 }
 
 /* צריך להוסיף כאן גם את ddg_wrapper ואת norm_wrapper על אותו עיקרון... */
-
 /* --- הגדרת המודול עבור פייתון --- */
 
 static PyMethodDef symnmfMethods[] = {
